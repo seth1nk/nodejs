@@ -18,7 +18,7 @@ const sequelize = new Sequelize('postgresql://uqhnsy0zoriffb7sednp:EzBtfkqYZhEDe
     dialectOptions: {
         ssl: {
             require: true,
-            rejectUnauthorized: false, // Для Clever Cloud требуется SSL, но без проверки сертификата
+            rejectUnauthorized: false,
         },
     },
 });
@@ -31,16 +31,28 @@ sequelize.sync({ alter: true })
     .then(() => console.log('Models synchronized with database'))
     .catch(err => console.error('Error synchronizing models:', err));
 
+// Настройка CORS для разрешения запросов с Netlify и localhost
+const allowedOrigins = ['http://localhost:8080', 'https://denglebov.netlify.app'];
+app.use(cors({
+    origin: (origin, callback) => {
+        // Разрешаем запросы без origin (например, с мобильных приложений или curl)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        } else {
+            return callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true, // Включаем поддержку куков
+}));
+
 // Middleware
 app.use(logger('dev'));
 app.use(express.json({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors({
-  origin: 'https://denglebov.netlify.app', 
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/jewelry', express.static(path.join(__dirname, 'views', 'jewelry')));
